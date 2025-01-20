@@ -4,10 +4,10 @@ import "iter"
 
 type Predicate[E any] func(E) bool
 
-func Filter[E any](seq iter.Seq[E], p Predicate[E]) iter.Seq[E] {
+func All[S ~[]E, E any](es S) iter.Seq[E] {
 	return func(yield func(e E) bool) {
-		for e := range seq {
-			if p(e) && !yield(e) {
+		for _, e := range es {
+			if !yield(e) {
 				return
 			}
 		}
@@ -34,51 +34,13 @@ func AnyMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
 	return false
 }
 
-func Zip[E, F any](es iter.Seq[E], fs iter.Seq[F]) iter.Seq2[E, F] {
-	return func(yield func(e E, f F) bool) {
-		nextE, stopE := iter.Pull(es)
-		defer stopE()
-
-		nextF, stopF := iter.Pull(fs)
-		defer stopF()
-
-		for {
-			e, existsE := nextE()
-			f, existsF := nextF()
-
-			if !existsE && !existsF {
-				return
-			}
-
-			if !yield(e, f) {
-				return
-			}
-		}
-	}
-}
-
-func ZipStrict[E, F any](es iter.Seq[E], fs iter.Seq[F]) iter.Seq2[E, F] {
-	return func(yield func(e E, f F) bool) {
-		nextE, stopE := iter.Pull(es)
-		defer stopE()
-
-		nextF, stopF := iter.Pull(fs)
-		defer stopF()
-
-		for {
-			e, existsE := nextE()
-			f, existsF := nextF()
-
-			if !existsE && !existsF {
-				return
-			}
-
-			if !existsE || !existsF {
-				panic("sequences are not the same length")
-			}
-
-			if !yield(e, f) {
-				return
+func Concat[E any](seqs ...iter.Seq[E]) iter.Seq[E] {
+	return func(yield func(E) bool) {
+		for _, seq := range seqs {
+			for elem := range seq {
+				if !yield(elem) {
+					return
+				}
 			}
 		}
 	}
@@ -115,6 +77,29 @@ func Distinct[E comparable](seq iter.Seq[E]) iter.Seq[E] {
 func Empty[E any]() iter.Seq[E] {
 	return func(func(E) bool) {
 		return
+	}
+}
+
+func Filter[E any](seq iter.Seq[E], p Predicate[E]) iter.Seq[E] {
+	return func(yield func(e E) bool) {
+		for e := range seq {
+			if p(e) && !yield(e) {
+				return
+			}
+		}
+	}
+}
+
+func FlatMap[I, O any](seq iter.Seq[I], fn func(I) iter.Seq[O]) iter.Seq[O] {
+	return func(yield func(O) bool) {
+		for elem := range seq {
+			innerSeq := fn(elem)
+			for innerElem := range innerSeq {
+				if !yield(innerElem) {
+					return
+				}
+			}
+		}
 	}
 }
 
@@ -212,4 +197,54 @@ func ToSlice[E any](seq iter.Seq[E]) []E {
 	}
 
 	return es
+}
+
+func Zip[E, F any](es iter.Seq[E], fs iter.Seq[F]) iter.Seq2[E, F] {
+	return func(yield func(e E, f F) bool) {
+		nextE, stopE := iter.Pull(es)
+		defer stopE()
+
+		nextF, stopF := iter.Pull(fs)
+		defer stopF()
+
+		for {
+			e, existsE := nextE()
+			f, existsF := nextF()
+
+			if !existsE && !existsF {
+				return
+			}
+
+			if !yield(e, f) {
+				return
+			}
+		}
+	}
+}
+
+func ZipStrict[E, F any](es iter.Seq[E], fs iter.Seq[F]) iter.Seq2[E, F] {
+	return func(yield func(e E, f F) bool) {
+		nextE, stopE := iter.Pull(es)
+		defer stopE()
+
+		nextF, stopF := iter.Pull(fs)
+		defer stopF()
+
+		for {
+			e, existsE := nextE()
+			f, existsF := nextF()
+
+			if !existsE && !existsF {
+				return
+			}
+
+			if !existsE || !existsF {
+				panic("sequences are not the same length")
+			}
+
+			if !yield(e, f) {
+				return
+			}
+		}
+	}
 }

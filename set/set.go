@@ -2,6 +2,7 @@ package set
 
 import (
 	"iter"
+	"maps"
 
 	"github.com/dustin10/itrz"
 )
@@ -36,36 +37,26 @@ func (s *Set[E]) Remove(elem E) bool {
 }
 
 func (s *Set[E]) Contains(elem E) bool {
-	return itrz.AnyMatch[E](s.All(), func(e E) bool {
-		return e == elem
-	})
+	_, exists := s.elems[elem]
+
+	return exists
 }
 
 func (s *Set[E]) Clear() int {
+	return s.ClearWithCapacity(defaultCapacity)
+}
+
+func (s *Set[E]) ClearWithCapacity(capacity int) int {
 	num := len(s.elems)
-	s.elems = make(map[E]struct{}, defaultCapacity)
+	s.elems = make(map[E]struct{}, capacity)
 
 	return num
 }
 
 func (s *Set[E]) All() iter.Seq[E] {
-	return func(yield func(E) bool) {
-		for e := range s.elems {
-			if !yield(e) {
-				return
-			}
-		}
-	}
+	return itrz.All(itrz.ToSlice(maps.Keys(s.elems)))
 }
 
 func (s *Set[E]) Filter(p itrz.Predicate[E]) iter.Seq[E] {
-	seq := func(yield func(e E) bool) {
-		for e := range s.elems {
-			if !yield(e) {
-				return
-			}
-		}
-	}
-
-	return itrz.Filter(seq, p)
+	return itrz.Filter(s.All(), p)
 }

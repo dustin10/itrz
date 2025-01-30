@@ -1,6 +1,10 @@
 package itrz
 
-import "iter"
+import (
+	"iter"
+
+	"github.com/dustin10/itrz/maybe"
+)
 
 type Predicate[E any] func(E) bool
 
@@ -88,6 +92,17 @@ func Filter[E any](seq iter.Seq[E], p Predicate[E]) iter.Seq[E] {
 			}
 		}
 	}
+}
+
+func FindAny[E any](seq iter.Seq[E]) maybe.Maybe[E] {
+	next, stop := iter.Pull(seq)
+	defer stop()
+
+	if val, exists := next(); exists {
+		return maybe.Just(val)
+	}
+
+	return maybe.Nothing[E]()
 }
 
 func FlatMap[I, O any](seq iter.Seq[I], fn func(I) iter.Seq[O]) iter.Seq[O] {

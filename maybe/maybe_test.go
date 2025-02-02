@@ -25,11 +25,41 @@ func Test_CreateAndPresence(t *testing.T) {
 }
 
 func Test_FromPointer(t *testing.T) {
+	value := 5
 
+	tests := map[string]struct {
+		value  *int
+		expect bool
+	}{
+		"valid pointer": {value: &value, expect: true},
+		"nil pointer":   {value: nil, expect: false},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := maybe.FromPointer(test.value)
+
+			assert.Equal(t, test.expect, m.IsPresent())
+		})
+	}
 }
 
 func Test_FromString(t *testing.T) {
+	tests := map[string]struct {
+		value  string
+		expect bool
+	}{
+		"valid pointer": {value: "value", expect: true},
+		"nil pointer":   {value: "", expect: false},
+	}
 
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := maybe.FromString(test.value)
+
+			assert.Equal(t, test.expect, m.IsPresent())
+		})
+	}
 }
 
 func Test_Filter(t *testing.T) {

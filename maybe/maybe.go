@@ -20,7 +20,23 @@ func Nothing[A any]() Maybe[A] {
 	}
 }
 
-func (m *Maybe[A]) Filter(p fn.Predicate[A]) Maybe[A] {
+func FromPointer[A any](p *A) Maybe[A] {
+	if p == nil {
+		return Nothing[A]()
+	}
+
+	return Just(*p)
+}
+
+func FromString(s string) Maybe[string] {
+	if len(s) == 0 {
+		return Nothing[string]()
+	}
+
+	return Just(s)
+}
+
+func (m Maybe[A]) Filter(p fn.Predicate[A]) Maybe[A] {
 	if m.IsEmpty() {
 		return Nothing[A]()
 	}
@@ -34,7 +50,7 @@ func (m *Maybe[A]) Filter(p fn.Predicate[A]) Maybe[A] {
 	return Nothing[A]()
 }
 
-func (m *Maybe[A]) Get() A {
+func (m Maybe[A]) Get() A {
 	if !m.present {
 		panic("Get() called with no value is present")
 	}
@@ -42,15 +58,15 @@ func (m *Maybe[A]) Get() A {
 	return m.value
 }
 
-func (m *Maybe[A]) IsPresent() bool {
+func (m Maybe[A]) IsPresent() bool {
 	return m.present
 }
 
-func (m *Maybe[A]) IsEmpty() bool {
+func (m Maybe[A]) IsEmpty() bool {
 	return !m.IsPresent()
 }
 
-func (m *Maybe[A]) Or(value A) A {
+func (m Maybe[A]) Or(value A) A {
 	if m.present {
 		return m.value
 	}
@@ -58,7 +74,7 @@ func (m *Maybe[A]) Or(value A) A {
 	return value
 }
 
-func (m *Maybe[A]) OrElse(f fn.Factory[A]) A {
+func (m Maybe[A]) OrElse(f fn.Factory[A]) A {
 	if m.present {
 		return m.value
 	}
@@ -66,12 +82,12 @@ func (m *Maybe[A]) OrElse(f fn.Factory[A]) A {
 	return f()
 }
 
-func FlatMap[A, B any](m Maybe[A], fn func(A) Maybe[B]) Maybe[B] {
+func FlatMap[A, B any](m Maybe[A], f fn.Function[A, Maybe[B]]) Maybe[B] {
 	if m.IsEmpty() {
 		return Nothing[B]()
 	}
 
-	return fn(m.Get())
+	return f(m.Get())
 }
 
 func Map[A, B any](m Maybe[A], f fn.Function[A, B]) Maybe[B] {

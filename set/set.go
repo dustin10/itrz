@@ -1,33 +1,56 @@
 package set
 
 import (
-	"iter"
 	"maps"
 
 	"github.com/dustin10/itrz"
+	"github.com/dustin10/itrz/fn"
 )
 
 const defaultCapacity = 16
 
-type Set[E comparable] struct {
-	elems map[E]struct{}
+type Option func(config *Config)
+
+type Config struct {
+	Capacity int
 }
 
-func New[E comparable]() Set[E] {
-	return NewWithCapacity[E](defaultCapacity)
-}
-
-func NewWithCapacity[E comparable](capacity int) Set[E] {
-	return Set[E]{
-		elems: make(map[E]struct{}, capacity),
+func WithCapacity(capacity int) Option {
+	return func(config *Config) {
+		config.Capacity = capacity
 	}
 }
 
-func (s *Set[E]) Add(elem E) {
+type Set[A comparable] struct {
+	config Config
+	elems  map[A]struct{}
+}
+
+func New[A comparable](opts ...Option) Set[A] {
+	config := Config{
+		Capacity: defaultCapacity,
+	}
+
+	for _, opt := range opts {
+		opt(&config)
+	}
+
+	return create[A](config)
+
+}
+
+func create[A comparable](config Config) Set[A] {
+	return Set[A]{
+		config: config,
+		elems:  make(map[A]struct{}, config.Capacity),
+	}
+}
+
+func (s *Set[A]) Add(elem A) {
 	s.elems[elem] = struct{}{}
 }
 
-func (s *Set[E]) Remove(elem E) bool {
+func (s *Set[A]) Remove(elem A) bool {
 	_, exists := s.elems[elem]
 	if exists {
 		delete(s.elems, elem)
@@ -36,27 +59,30 @@ func (s *Set[E]) Remove(elem E) bool {
 	return exists
 }
 
-func (s *Set[E]) Contains(elem E) bool {
+func (s *Set[A]) Contains(elem A) bool {
 	_, exists := s.elems[elem]
 
 	return exists
 }
 
-func (s *Set[E]) Clear() int {
-	return s.ClearWithCapacity(defaultCapacity)
-}
-
-func (s *Set[E]) ClearWithCapacity(capacity int) int {
+func (s *Set[A]) Clear() int {
 	num := len(s.elems)
-	s.elems = make(map[E]struct{}, capacity)
+
+	*s = create[A](s.config)
 
 	return num
 }
 
-func (s *Set[E]) All() iter.Seq[E] {
-	return itrz.All(itrz.ToSlice(maps.Keys(s.elems)))
+func (s *Set[A]) All() itrz.Seq[A] {
+	return itrz.Seq[A](maps.Keys(s.elems))
 }
 
-func (s *Set[E]) Filter(p itrz.Predicate[E]) iter.Seq[E] {
-	return itrz.Filter(s.All(), p)
+func Map[A, B comparable](s Set[A], f fn.Function[A, B]) Set[B] {
+	result := create[B](s.config)
+
+	s.All().ForEach(func(a A) {
+		result.Add(f(a))
+	})
+
+	return result
 }

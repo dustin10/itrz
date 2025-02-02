@@ -1,81 +1,83 @@
 package maybe
 
-type Maybe[E any] struct {
-	value     E
-	isPresent bool
+import "github.com/dustin10/itrz/fn"
+
+type Maybe[A any] struct {
+	value   A
+	present bool
 }
 
-func Just[E any](value E) Maybe[E] {
-	return Maybe[E]{
-		value:     value,
-		isPresent: true,
+func Just[A any](value A) Maybe[A] {
+	return Maybe[A]{
+		value:   value,
+		present: true,
 	}
 }
 
-func Nothing[E any]() Maybe[E] {
-	return Maybe[E]{
-		isPresent: false,
+func Nothing[A any]() Maybe[A] {
+	return Maybe[A]{
+		present: false,
 	}
 }
 
-func (m *Maybe[E]) Filter(fn func(E) bool) Maybe[E] {
+func (m *Maybe[A]) Filter(p fn.Predicate[A]) Maybe[A] {
 	if m.IsEmpty() {
-		return Nothing[E]()
+		return Nothing[A]()
 	}
 
 	value := m.Get()
 
-	if fn(value) {
+	if p(value) {
 		return Just(value)
 	}
 
-	return Nothing[E]()
+	return Nothing[A]()
 }
 
-func (m *Maybe[E]) Get() E {
-	if !m.isPresent {
+func (m *Maybe[A]) Get() A {
+	if !m.present {
 		panic("Get() called with no value is present")
 	}
 
 	return m.value
 }
 
-func (m *Maybe[E]) IsPresent() bool {
-	return m.isPresent
+func (m *Maybe[A]) IsPresent() bool {
+	return m.present
 }
 
-func (m *Maybe[E]) IsEmpty() bool {
+func (m *Maybe[A]) IsEmpty() bool {
 	return !m.IsPresent()
 }
 
-func (m *Maybe[E]) Or(value E) E {
-	if m.isPresent {
+func (m *Maybe[A]) Or(value A) A {
+	if m.present {
 		return m.value
 	}
 
 	return value
 }
 
-func (m *Maybe[E]) OrElse(fn func() E) E {
-	if m.isPresent {
+func (m *Maybe[A]) OrElse(f fn.Factory[A]) A {
+	if m.present {
 		return m.value
 	}
 
-	return fn()
+	return f()
 }
 
-func FlatMap[I, O any](m Maybe[I], fn func(I) Maybe[O]) Maybe[O] {
+func FlatMap[A, B any](m Maybe[A], fn func(A) Maybe[B]) Maybe[B] {
 	if m.IsEmpty() {
-		return Nothing[O]()
+		return Nothing[B]()
 	}
 
 	return fn(m.Get())
 }
 
-func Map[I, O any](m Maybe[I], fn func(I) O) Maybe[O] {
+func Map[A, B any](m Maybe[A], f fn.Function[A, B]) Maybe[B] {
 	if m.IsEmpty() {
-		return Nothing[O]()
+		return Nothing[B]()
 	}
 
-	return Just(fn(m.Get()))
+	return Just(f(m.Get()))
 }

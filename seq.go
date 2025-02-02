@@ -3,24 +3,25 @@ package itrz
 import (
 	"iter"
 
+	"github.com/dustin10/itrz/fn"
 	"github.com/dustin10/itrz/maybe"
 )
 
-type Predicate[E any] func(E) bool
+type Seq[A any] iter.Seq[A]
 
-func All[S ~[]E, E any](es S) iter.Seq[E] {
-	return func(yield func(e E) bool) {
-		for _, e := range es {
-			if !yield(e) {
+func All[S ~[]A, A any](as S) Seq[A] {
+	return func(yield func(a A) bool) {
+		for _, a := range as {
+			if !yield(a) {
 				return
 			}
 		}
 	}
 }
 
-func AllMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
-	for e := range seq {
-		if !p(e) {
+func (s Seq[A]) AllMatch(p fn.Predicate[A]) bool {
+	for a := range s {
+		if !p(a) {
 			return false
 		}
 	}
@@ -28,9 +29,9 @@ func AllMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
 	return true
 }
 
-func AnyMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
-	for e := range seq {
-		if p(e) {
+func (s Seq[A]) AnyMatch(p fn.Predicate[A]) bool {
+	for a := range s {
+		if p(a) {
 			return true
 		}
 	}
@@ -38,11 +39,11 @@ func AnyMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
 	return false
 }
 
-func Concat[E any](seqs ...iter.Seq[E]) iter.Seq[E] {
-	return func(yield func(E) bool) {
+func Concat[A any](seqs ...Seq[A]) Seq[A] {
+	return func(yield func(A) bool) {
 		for _, seq := range seqs {
-			for elem := range seq {
-				if !yield(elem) {
+			for a := range seq {
+				if !yield(a) {
 					return
 				}
 			}
@@ -50,67 +51,67 @@ func Concat[E any](seqs ...iter.Seq[E]) iter.Seq[E] {
 	}
 }
 
-func Count[E any](seq iter.Seq[E]) int {
+func (s Seq[A]) Count() int {
 	count := 0
-	for range seq {
+	for range s {
 		count = count + 1
 	}
 
 	return count
 }
 
-func Distinct[E comparable](seq iter.Seq[E]) iter.Seq[E] {
-	set := make(map[E]struct{}, 0)
+func Distinct[A comparable](seq Seq[A]) Seq[A] {
+	set := make(map[A]struct{}, 0)
 
-	return func(yield func(E) bool) {
-		for elem := range seq {
-			_, exists := set[elem]
+	return func(yield func(A) bool) {
+		for a := range seq {
+			_, exists := set[a]
 			if exists {
 				continue
 			}
 
-			set[elem] = struct{}{}
+			set[a] = struct{}{}
 
-			if !yield(elem) {
+			if !yield(a) {
 				return
 			}
 		}
 	}
 }
 
-func Empty[E any]() iter.Seq[E] {
-	return func(func(E) bool) {
+func Empty[A any]() Seq[A] {
+	return func(func(A) bool) {
 		return
 	}
 }
 
-func Filter[E any](seq iter.Seq[E], p Predicate[E]) iter.Seq[E] {
-	return func(yield func(e E) bool) {
-		for e := range seq {
-			if p(e) && !yield(e) {
+func (s Seq[A]) Filter(p fn.Predicate[A]) Seq[A] {
+	return func(yield func(a A) bool) {
+		for a := range s {
+			if p(a) && !yield(a) {
 				return
 			}
 		}
 	}
 }
 
-func FindAny[E any](seq iter.Seq[E]) maybe.Maybe[E] {
-	next, stop := iter.Pull(seq)
+func (s Seq[A]) FindAny() maybe.Maybe[A] {
+	next, stop := iter.Pull(iter.Seq[A](s))
 	defer stop()
 
 	if val, exists := next(); exists {
 		return maybe.Just(val)
 	}
 
-	return maybe.Nothing[E]()
+	return maybe.Nothing[A]()
 }
 
-func FlatMap[I, O any](seq iter.Seq[I], fn func(I) iter.Seq[O]) iter.Seq[O] {
-	return func(yield func(O) bool) {
-		for elem := range seq {
-			innerSeq := fn(elem)
-			for innerElem := range innerSeq {
-				if !yield(innerElem) {
+func FlatMap[A, B any](seq Seq[A], f func(A) Seq[B]) Seq[B] {
+	return func(yield func(B) bool) {
+		for a := range seq {
+			mapped := f(a)
+			for b := range mapped {
+				if !yield(b) {
 					return
 				}
 			}
@@ -118,27 +119,27 @@ func FlatMap[I, O any](seq iter.Seq[I], fn func(I) iter.Seq[O]) iter.Seq[O] {
 	}
 }
 
-func ForEach[E any](seq iter.Seq[E], fn func(E)) {
-	for elem := range seq {
-		fn(elem)
+func (s Seq[A]) ForEach(c fn.Consumer[A]) {
+	for a := range s {
+		c(a)
 	}
 }
 
-func Generate[E any](fn func() E) iter.Seq[E] {
-	return func(yield func(E) bool) {
+func Generate[A any](f fn.Factory[A]) Seq[A] {
+	return func(yield func(A) bool) {
 		for {
-			if !yield(fn()) {
+			if !yield(f()) {
 				return
 			}
 		}
 	}
 }
 
-func Limit[E any](seq iter.Seq[E], limit int) iter.Seq[E] {
-	return func(yield func(E) bool) {
+func (s Seq[A]) Limit(limit int) Seq[A] {
+	return func(yield func(A) bool) {
 		count := 0
-		for elem := range seq {
-			if count == limit || !yield(elem) {
+		for a := range s {
+			if count == limit || !yield(a) {
 				return
 			}
 
@@ -147,19 +148,19 @@ func Limit[E any](seq iter.Seq[E], limit int) iter.Seq[E] {
 	}
 }
 
-func Map[I, O any](seq iter.Seq[I], fn func(I) O) iter.Seq[O] {
-	return func(yield func(O) bool) {
-		for elem := range seq {
-			if !yield(fn(elem)) {
+func Map[A, B any](seq Seq[A], f fn.Function[A, B]) Seq[B] {
+	return func(yield func(B) bool) {
+		for a := range seq {
+			if !yield(f(a)) {
 				return
 			}
 		}
 	}
 }
 
-func NoneMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
-	for e := range seq {
-		if p(e) {
+func (s Seq[A]) NoneMatch(p fn.Predicate[A]) bool {
+	for a := range s {
+		if p(a) {
 			return false
 		}
 	}
@@ -167,97 +168,107 @@ func NoneMatch[E any](seq iter.Seq[E], p Predicate[E]) bool {
 	return true
 }
 
-func Of[E any](es ...E) iter.Seq[E] {
-	return func(yield func(E) bool) {
-		for _, elem := range es {
-			if !yield(elem) {
+func Of[A any](as ...A) Seq[A] {
+	return func(yield func(A) bool) {
+		for _, a := range as {
+			if !yield(a) {
 				return
 			}
 		}
 	}
 }
 
-func Peek[E any](seq iter.Seq[E], fn func(E)) iter.Seq[E] {
-	return func(yield func(E) bool) {
-		for elem := range seq {
-			fn(elem)
+func (s Seq[A]) Peek(c fn.Consumer[A]) Seq[A] {
+	return func(yield func(A) bool) {
+		for a := range s {
+			c(a)
 
-			if !yield(elem) {
+			if !yield(a) {
 				return
 			}
 		}
 	}
 }
 
-func Skip[E any](seq iter.Seq[E], n int) iter.Seq[E] {
+func Reduce[A, B any](seq Seq[A], identity B, f func(A, B) B) B {
+	result := identity
+
+	for a := range seq {
+		result = f(a, result)
+	}
+
+	return result
+}
+
+func (s Seq[A]) Skip(n int) Seq[A] {
 	skipped := 0
-	return func(yield func(E) bool) {
-		for elem := range seq {
+	return func(yield func(A) bool) {
+		for a := range s {
 			if skipped < n {
 				skipped = skipped + 1
 				continue
 			}
 
-			if !yield(elem) {
+			if !yield(a) {
 				return
 			}
 		}
 	}
 }
 
-func ToSlice[E any](seq iter.Seq[E]) []E {
-	es := make([]E, 0)
-	for e := range seq {
-		es = append(es, e)
+func (s Seq[A]) ToSlice() []A {
+	as := make([]A, 0)
+	for a := range s {
+		as = append(as, a)
 	}
 
-	return es
+	return as
 }
 
-func Zip[E, F any](es iter.Seq[E], fs iter.Seq[F]) iter.Seq2[E, F] {
-	return func(yield func(e E, f F) bool) {
-		nextE, stopE := iter.Pull(es)
-		defer stopE()
+func Zip[A, B any](as Seq[A], bs Seq[B]) Seq2[A, B] {
+	return func(yield func(a A, b B) bool) {
+		nextA, stopA := iter.Pull(iter.Seq[A](as))
+		defer stopA()
 
-		nextF, stopF := iter.Pull(fs)
-		defer stopF()
+		nextB, stopB := iter.Pull(iter.Seq[B](bs))
+		defer stopB()
 
 		for {
-			e, existsE := nextE()
-			f, existsF := nextF()
+			a, existsA := nextA()
+			b, existsB := nextB()
 
-			if !existsE && !existsF {
+			if !existsA && !existsB {
 				return
 			}
 
-			if !yield(e, f) {
+			if !yield(a, b) {
 				return
 			}
 		}
 	}
 }
 
-func ZipStrict[E, F any](es iter.Seq[E], fs iter.Seq[F]) iter.Seq2[E, F] {
-	return func(yield func(e E, f F) bool) {
-		nextE, stopE := iter.Pull(es)
-		defer stopE()
+func ZipStrict[A, B any](as Seq[A], bs Seq[B]) Seq2[A, B] {
+	return func(yield func(a A, b B) bool) {
+		nextA, stopA := iter.Pull(iter.Seq[A](as))
+		defer stopA()
 
-		nextF, stopF := iter.Pull(fs)
-		defer stopF()
+		nextB, stopB := iter.Pull(iter.Seq[B](bs))
+		defer stopB()
 
 		for {
-			e, existsE := nextE()
-			f, existsF := nextF()
+			a, existsA := nextA()
+			b, existsB := nextB()
 
-			if !existsE && !existsF {
+			if !existsA && !existsB {
 				return
 			}
 
-			if !existsE || !existsF {
+			if !existsA || !existsB {
 				panic("sequences are not the same length")
 			}
 
-			if !yield(e, f) {
+			if !yield(a, b) {
 				return
 			}
 		}

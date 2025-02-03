@@ -165,6 +165,22 @@ func Generate[A any](f fn.Factory[A]) Seq[A] {
 	}
 }
 
+// GenerateWithLast returns a Seq that will yield elements produced by the specified
+// fn.Function function. The fn.Function accepts the last generated value as an argument.
+// The caller must sepcify the the initial value to be passed in for the first invocation
+// of the function.
+func GenerateWithLast[A any](initial A, f fn.Function[A, A]) Seq[A] {
+	last := initial
+	return func(yield func(A) bool) {
+		for {
+			last = f(last)
+			if !yield(last) {
+				return
+			}
+		}
+	}
+}
+
 // Limit returns a new Seq that will only yield limit number of elements.
 func (s Seq[A]) Limit(limit int) Seq[A] {
 	return func(yield func(A) bool) {

@@ -15,3 +15,7 @@ type Factory[A any] func() A
 // Function is a derived type that represents a function that takes a value of type
 // A as input and produces a value of type B as output.
 type Function[A, B any] func(A) B
+
+// Function2 is a derived type that represents a function that accepts two arguments
+// of type A and B and produces a value of type C as output.
+type Function2[A, B, C any] func(A, B) C

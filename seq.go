@@ -227,6 +227,12 @@ func (s Seq[A]) Peek(c fn.Consumer[A]) Seq[A] {
 	}
 }
 
+// Pull is a convenience function for procuring a pull-style iterator for a Seq. Refer
+// to the iter.Pull documentation for more details on pull-style iterators.
+func Pull[A any](seq Seq[A]) (func() (A, bool), func()) {
+	return iter.Pull(iter.Seq[A](seq))
+}
+
 // Reduce performs a reduction on the elements of the Seq, using the provided identity value
 // and an associative accumulation function, and returns the reduced value.
 func Reduce[A, B any](seq Seq[A], identity B, f fn.Function2[A, B, B]) B {

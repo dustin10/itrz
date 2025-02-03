@@ -35,3 +35,10 @@ func Map2[A, B, C any](seq Seq2[A, B], f fn.Function2[A, B, C]) Seq[C] {
 		}
 	}
 }
+
+// Pull2 is a convenience function for procuring a pull-style iterator for a Seq2. Refer
+// to the iter.Pull2 documentation for more details on pull-style iterators and how to
+// work with them correctly.
+func Pull2[A, B, C any](seq Seq2[A, B]) (func() (A, B, bool), func()) {
+	return iter.Pull2(iter.Seq2[A, B](seq))
+}

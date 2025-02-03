@@ -228,7 +228,8 @@ func (s Seq[A]) Peek(c fn.Consumer[A]) Seq[A] {
 }
 
 // Pull is a convenience function for procuring a pull-style iterator for a Seq. Refer
-// to the iter.Pull documentation for more details on pull-style iterators.
+// to the iter.Pull documentation for more details on pull-style iterators and how to
+// use them correctly.
 func Pull[A any](seq Seq[A]) (func() (A, bool), func()) {
 	return iter.Pull(iter.Seq[A](seq))
 }

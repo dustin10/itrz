@@ -102,7 +102,6 @@ func (s Seq[A]) DrainTo(sink Sink[A]) {
 // Empty returns a Seq which yields zero elements.
 func Empty[A any]() Seq[A] {
 	return func(func(A) bool) {
-		return
 	}
 }
 

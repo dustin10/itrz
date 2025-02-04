@@ -5,10 +5,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/dustin10/itrz"
-	"github.com/dustin10/itrz/fn"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/constraints"
+
+	"github.com/dustin10/itrz"
+	"github.com/dustin10/itrz/fn"
 )
 
 func Test_All(t *testing.T) {

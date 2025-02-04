@@ -45,7 +45,18 @@ func New[A comparable](opts ...Option) Set[A] {
 	}
 
 	return create[A](config)
+}
 
+// FromSlice creates a new Set using the given slice as the initial data and applying
+// any Options that are specified.
+func FromSlice[S ~[]A, A comparable](as S, opts ...Option) Set[A] {
+	s := New[A](opts...)
+
+	for _, a := range as {
+		s.Add(a)
+	}
+
+	return s
 }
 
 func create[A comparable](config Config) Set[A] {
@@ -55,25 +66,35 @@ func create[A comparable](config Config) Set[A] {
 	}
 }
 
+// IsEmpty returns true if the Set as zero elements and false otherwise.
+func (s *Set[A]) IsEmpty() bool {
+	return s.Len() == 0
+}
+
+// Len returns the number of elements in the Set.
+func (s *Set[A]) Len() int {
+	return len(s.elems)
+}
+
 // Add adds an element to the Set.
-func (s *Set[A]) Add(elem A) {
-	s.elems[elem] = struct{}{}
+func (s *Set[A]) Add(a A) {
+	s.elems[a] = struct{}{}
 }
 
 // Remove removes the specified element from the Set. Returns true if the value was
 // removed from the Set.
-func (s *Set[A]) Remove(elem A) bool {
-	_, exists := s.elems[elem]
+func (s *Set[A]) Remove(a A) bool {
+	_, exists := s.elems[a]
 	if exists {
-		delete(s.elems, elem)
+		delete(s.elems, a)
 	}
 
 	return exists
 }
 
 // Contains returns true if the Set contains the specified element or false otherwise.
-func (s *Set[A]) Contains(elem A) bool {
-	_, exists := s.elems[elem]
+func (s *Set[A]) Contains(a A) bool {
+	_, exists := s.elems[a]
 
 	return exists
 }

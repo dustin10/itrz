@@ -3,9 +3,10 @@ package maybe_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/dustin10/itrz/fn"
 	"github.com/dustin10/itrz/maybe"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_CreateAndPresence(t *testing.T) {

@@ -92,6 +92,23 @@ func (s *Set[A]) All() itrz.Seq[A] {
 	return itrz.Seq[A](maps.Keys(s.elems))
 }
 
+// FlatMap applies a given function, that itself returns a Set, to each value in the Set and
+// returns a new Set with the flattened values.
+func FlatMap[A, B comparable](s Set[A], f fn.Function[A, Set[B]]) Set[B] {
+	result := create[B](Config{
+		InitialCapacity: len(s.elems),
+	})
+
+	mapper := func(a A) itrz.Seq[B] {
+		s := f(a)
+		return s.All()
+	}
+
+	itrz.FlatMap(s.All(), mapper).DrainTo(&result)
+
+	return result
+}
+
 // Map applies a given function to each value in the Set returning a new Set with the
 // mapped values.
 func Map[A, B comparable](s Set[A], f fn.Function[A, B]) Set[B] {

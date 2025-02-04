@@ -9,6 +9,31 @@ import (
 	"github.com/dustin10/itrz"
 )
 
+func Test_All2(t *testing.T) {
+	tests := map[string]struct {
+		values map[string]string
+	}{
+		"nil":   {values: nil},
+		"empty": {values: map[string]string{}},
+		"non-empty": {values: map[string]string{
+			"foo": "bar",
+			"biz": "baz",
+		}},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := itrz.All2(test.values)
+
+			for k, v := range s {
+				e, exists := test.values[k]
+				assert.True(t, exists)
+				assert.Equal(t, e, v)
+			}
+		})
+	}
+}
+
 func Test_FlatMap2(t *testing.T) {
 	f := func(a int, b string) itrz.Seq[string] {
 		return itrz.Of(fmt.Sprintf("%d: %s", a, b))

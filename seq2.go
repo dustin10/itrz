@@ -9,6 +9,19 @@ import (
 // Seq2 is a derived type of iter.Seq2.
 type Seq2[A, B any] iter.Seq2[A, B]
 
+// All2 creates a Seq2 from the specified map. The elements yielded by the Seq2 correspond
+// to the key-value pairs of the map. To create a Seq2 from to Seq values then see the Zip,
+// ZipShortest and ZipStrict functions.
+func All2[A comparable, B any](m map[A]B) Seq2[A, B] {
+	return func(yield func(A, B) bool) {
+		for a, b := range m {
+			if !yield(a, b) {
+				return
+			}
+		}
+	}
+}
+
 // FlatMap2 applies the fn.Function2, that itself returns a Seq, to each tuple element
 // yielded by the Seq2 and flattens them out into one Seq.
 func FlatMap2[A, B, C any](seq Seq2[A, B], f fn.Function2[A, B, Seq[C]]) Seq[C] {

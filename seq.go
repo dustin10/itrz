@@ -292,7 +292,7 @@ func (s Seq[A]) ToSlice() []A {
 
 // Zip combines the elements of the two specified Seq instances into a Seq2 that contains
 // the pair-wise tuples. If the two sequences are not of the same length then the Seq2 will
-// stop yielding tuple elements once the first Seq is exhausted.
+// contain the default values for the shorter Seq.
 func Zip[A, B any](as Seq[A], bs Seq[B]) Seq2[A, B] {
 	return func(yield func(a A, b B) bool) {
 		nextA, stopA := iter.Pull(iter.Seq[A](as))
@@ -306,6 +306,32 @@ func Zip[A, B any](as Seq[A], bs Seq[B]) Seq2[A, B] {
 			b, existsB := nextB()
 
 			if !existsA && !existsB {
+				return
+			}
+
+			if !yield(a, b) {
+				return
+			}
+		}
+	}
+}
+
+// Zip combines the elements of the two specified Seq instances into a Seq2 that contains
+// the pair-wise tuples. If the two sequences are not of the same length then the Seq2 will
+// stop yielding tuple elements once the shortest Seq is exhausted.
+func ZipToShortest[A, B any](as Seq[A], bs Seq[B]) Seq2[A, B] {
+	return func(yield func(a A, b B) bool) {
+		nextA, stopA := iter.Pull(iter.Seq[A](as))
+		defer stopA()
+
+		nextB, stopB := iter.Pull(iter.Seq[B](bs))
+		defer stopB()
+
+		for {
+			a, existsA := nextA()
+			b, existsB := nextB()
+
+			if !existsA || !existsB {
 				return
 			}
 

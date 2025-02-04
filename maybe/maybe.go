@@ -1,6 +1,11 @@
 package maybe
 
-import "github.com/dustin10/itrz/fn"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/dustin10/itrz/fn"
+)
 
 // Maybe encapsulates a value that is optional. Either a value exists or it does not. This struct
 // is similar to Maybe in Haskell or Option in Rust.
@@ -98,6 +103,42 @@ func (m Maybe[A]) OrElse(f fn.Factory[A]) A {
 	}
 
 	return f()
+}
+
+// String returns a string representation of the Maybe.
+func (m Maybe[A]) String() string {
+	if m.present {
+		return fmt.Sprintf("Just(%v)", m.value)
+	} else {
+		return "Nothing"
+	}
+}
+
+// MarshalJSON converts the value in the Maybe, if present, to it's JSON representation.
+// If not value is present then the JSON representation is null.
+func (m Maybe[_]) MarshalJSON() ([]byte, error) {
+	if m.present {
+		return json.Marshal(m.value)
+	} else {
+		return []byte("null"), nil
+	}
+}
+
+// UnmarshalJSON converts the JSON bytes to the value contained in the Maybe if present.
+func (m *Maybe[_]) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		m.present = false
+		return nil
+	}
+
+	err := json.Unmarshal(data, &m.value)
+	if err != nil {
+		return fmt.Errorf("unmarshal Maybe value from JSON: %w", err)
+	}
+
+	m.present = true
+
+	return nil
 }
 
 // FlatMap applies the given Function to the value in the Maybe if it exists.

@@ -164,6 +164,68 @@ func Test_OrElse(t *testing.T) {
 	}
 }
 
+func Test_String(t *testing.T) {
+	tests := map[string]struct {
+		value  string
+		expect string
+	}{
+		"empty":     {value: "", expect: "Nothing"},
+		"non-empty": {value: "value", expect: "Just(value)"},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := maybe.FromString(test.value)
+
+			assert.Equal(t, test.expect, m.String())
+		})
+	}
+}
+
+func Test_MarshalJSON(t *testing.T) {
+	tests := map[string]struct {
+		value  string
+		expect []byte
+	}{
+		"empty":  {value: "", expect: []byte("null")},
+		"string": {value: "value", expect: []byte("\"value\"")},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := maybe.FromString(test.value)
+
+			res, err := m.MarshalJSON()
+
+			assert.Nil(t, err)
+			assert.Equal(t, test.expect, res)
+		})
+	}
+}
+
+func Test_UnmarshalJSON(t *testing.T) {
+	tests := map[string]struct {
+		value   []byte
+		expect  string
+		present bool
+	}{
+		"empty":     {value: []byte("null"), expect: "default"},
+		"non-empty": {value: []byte("\"value\""), expect: "value", present: true},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var m maybe.Maybe[string]
+
+			err := m.UnmarshalJSON(test.value)
+
+			assert.Nil(t, err)
+			assert.Equal(t, test.present, m.IsPresent())
+			assert.Equal(t, test.expect, m.Or("default"))
+		})
+	}
+}
+
 func Test_FlatMap(t *testing.T) {
 	tests := map[string]struct {
 		value  string

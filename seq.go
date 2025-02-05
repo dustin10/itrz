@@ -279,6 +279,30 @@ func (s Seq[A]) Skip(n int) Seq[A] {
 	}
 }
 
+// TakeUntil returns a Seq that produces elements as long as the fn.Predicate returns true.
+// Elements will stop being produced when the first one fails.
+func (s Seq[A]) TakeWhile(p fn.Predicate[A]) Seq[A] {
+	return func(yield func(A) bool) {
+		for a := range s {
+			if !p(a) || !yield(a) {
+				return
+			}
+		}
+	}
+}
+
+// TakeUntil returns a Seq that produces elements as long as the fn.Predicate returns false.
+// Elements will stop being produced when the first one passes.
+func (s Seq[A]) TakeUntil(p fn.Predicate[A]) Seq[A] {
+	return func(yield func(A) bool) {
+		for a := range s {
+			if p(a) || !yield(a) {
+				return
+			}
+		}
+	}
+}
+
 // ToSlice returns a slice containing the elements of the Seq.
 func (s Seq[A]) ToSlice() []A {
 	as := make([]A, 0)

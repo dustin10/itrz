@@ -80,15 +80,12 @@ func Test_Concat(t *testing.T) {
 
 	s := itrz.Concat(s1, s2)
 
-	elems := make([]int, 0)
-	for e := range s {
-		elems = append(elems, e)
-	}
+	res := consumeSeq(s)
 
-	assert.Equal(t, 6, len(elems))
+	assert.Equal(t, 6, len(res))
 
 	expected := 1
-	for _, e := range elems {
+	for _, e := range res {
 		assert.Equal(t, expected, e)
 		expected = expected + 1
 	}
@@ -128,10 +125,7 @@ func Test_Distinct(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := itrz.Distinct(itrz.All(test.values))
 
-			res := make([]int, 0)
-			for e := range s {
-				res = append(res, e)
-			}
+			res := consumeSeq(s)
 
 			assert.True(t, slices.Equal(test.expected, res))
 		})
@@ -188,10 +182,7 @@ func Test_Seq_Filter(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := itrz.All(test.values).Filter(test.test)
 
-			res := make([]int, 0)
-			for n := range s {
-				res = append(res, n)
-			}
+			res := consumeSeq(s)
 
 			assert.True(t, slices.Equal(test.expected, res))
 		})
@@ -235,10 +226,7 @@ func Test_FlatMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := itrz.FlatMap(itrz.All(test.values), test.fn)
 
-			res := make([]int, 0)
-			for e := range s {
-				res = append(res, e)
-			}
+			res := consumeSeq(s)
 
 			assert.True(t, slices.Equal(test.values, res))
 		})
@@ -345,10 +333,7 @@ func Test_Map(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := itrz.Map(itrz.All(test.values), test.fn)
 
-			res := make([]int, 0)
-			for e := range s {
-				res = append(res, e)
-			}
+			res := consumeSeq(s)
 
 			assert.True(t, slices.Equal(test.expected, res))
 		})
@@ -460,16 +445,60 @@ func Test_Seq_Skip(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := itrz.All(test.values).Skip(test.n)
 
-			res := make([]int, 0)
-			for e := range s {
-				res = append(res, e)
-			}
+			res := consumeSeq(s)
 
 			assert.True(t, slices.Equal(test.expected, res))
 		})
 	}
 }
 
+func Test_Seq_TakeWhile(t *testing.T) {
+	tests := map[string]struct {
+		values   []int
+		fn       fn.Predicate[int]
+		expected []int
+	}{
+		"empty":               {values: []int{}},
+		"nil":                 {values: nil},
+		"non-empty take all":  {values: []int{1, 2, 3, 4}, fn: func(int) bool { return true }, expected: []int{1, 2, 3, 4}},
+		"non-empty take some": {values: []int{1, 2, 3, 4}, fn: func(n int) bool { return n < 3 }, expected: []int{1, 2}},
+		"non-empty take none": {values: []int{1, 2, 3, 4}, fn: func(int) bool { return false }, expected: []int{}},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := itrz.All(test.values).TakeWhile(test.fn)
+
+			res := consumeSeq(s)
+
+			assert.True(t, slices.Equal(test.expected, res))
+		})
+	}
+}
+
+func Test_Seq_TakeUntil(t *testing.T) {
+	tests := map[string]struct {
+		values   []int
+		fn       fn.Predicate[int]
+		expected []int
+	}{
+		"empty":               {values: []int{}},
+		"nil":                 {values: nil},
+		"non-empty take all":  {values: []int{1, 2, 3, 4}, fn: func(int) bool { return false }, expected: []int{1, 2, 3, 4}},
+		"non-empty take some": {values: []int{1, 2, 3, 4}, fn: func(n int) bool { return n > 2 }, expected: []int{1, 2}},
+		"non-empty take none": {values: []int{1, 2, 3, 4}, fn: func(int) bool { return true }, expected: []int{}},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := itrz.All(test.values).TakeUntil(test.fn)
+
+			res := consumeSeq(s)
+
+			assert.True(t, slices.Equal(test.expected, res))
+		})
+	}
+}
 func Test_Seq_ToSlice(t *testing.T) {
 	tests := map[string]struct {
 		values []int
@@ -621,10 +650,14 @@ func isOdd(n int) bool {
 }
 
 func countElems[A any](s itrz.Seq[A]) int {
-	n := 0
-	for range s {
-		n = n + 1
+	return len(consumeSeq(s))
+}
+
+func consumeSeq[A any](s itrz.Seq[A]) []A {
+	res := make([]A, 0)
+	for e := range s {
+		res = append(res, e)
 	}
 
-	return n
+	return res
 }

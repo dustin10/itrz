@@ -37,7 +37,7 @@ func FlatMap2[A, B, C any](seq Seq2[A, B], f fn.Function2[A, B, Seq[C]]) Seq[C] 
 	}
 }
 
-// Map2 returns a new Seq2 consisting of the results of applying the given fn.Function2 to
+// Map2 returns a new Seq consisting of the results of applying the given fn.Function2 to
 // the elements of the existing Seq2.
 func Map2[A, B, C any](seq Seq2[A, B], f fn.Function2[A, B, C]) Seq[C] {
 	return func(yield func(C) bool) {

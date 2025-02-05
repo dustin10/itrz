@@ -1,7 +1,10 @@
 package set
 
 import (
+	"encoding/json"
+	"fmt"
 	"maps"
+	"strings"
 
 	"github.com/dustin10/itrz"
 	"github.com/dustin10/itrz/fn"
@@ -111,6 +114,45 @@ func (s *Set[A]) Clear() int {
 // All returns an itrz.Seq that can be used to range over the Set.
 func (s *Set[A]) All() itrz.Seq[A] {
 	return itrz.Seq[A](maps.Keys(s.elems))
+}
+
+// String returns a string representation of the Maybe.
+func (s Set[A]) String() string {
+	f := func(a A) string {
+		return fmt.Sprintf("%v", a)
+	}
+
+	as := itrz.Map(s.All(), f).ToSlice()
+
+	return fmt.Sprintf("[%s]", strings.Join(as, ","))
+}
+
+// MarshalJSON converts the Set to it's JSON representation.
+func (s Set[A]) MarshalJSON() ([]byte, error) {
+	as := s.All().ToSlice()
+
+	bytes, err := json.Marshal(&as)
+	if err != nil {
+		return nil, fmt.Errorf("marshal Set to JSON: %w", err)
+	}
+
+	return bytes, nil
+}
+
+// UnmarshalJSON converts the JSON bytes to the value contained in the Maybe if present.
+func (s *Set[A]) UnmarshalJSON(data []byte) error {
+	as := make([]A, 0)
+
+	err := json.Unmarshal(data, &as)
+	if err != nil {
+		return fmt.Errorf("unmarshal JSON to Set: %w", err)
+	}
+
+	for _, a := range as {
+		s.Add(a)
+	}
+
+	return nil
 }
 
 // FlatMap applies a given function, that itself returns a Set, to each value in the Set and
